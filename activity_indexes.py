@@ -1,9 +1,10 @@
 import requests
+import os
 
 def getIndexForActivity (system_indices, activity):
     for index in system_indices.get("cost_indices")[:]:
         if index["activity"] == activity:
-            return index["cost_index"]
+            return round(index["cost_index"] * 100, 2)
 
 def getNameForSystemId (system_id):
     system_url = 'https://esi.tech.ccp.is/latest/universe/systems/' + repr(system_id) + '/?datasource=tranquility&language=en-us'
@@ -25,11 +26,20 @@ def getActivityIndexForAlliance (alliance_id, activity, topX):
     alliance_indices = [x for x in indices_json if x["solar_system_id"] in alliance_systems]
     alliance_indices.sort(key=lambda x: getIndexForActivity(x, activity), reverse=True)
 
+    resultString = "Manufacturing Index Report: \n \n```"
     for index in alliance_indices[:topX]:
-        print('System:' + getNameForSystemId(index["solar_system_id"]) + ' Manufacturing Index:' + repr(getIndexForActivity(index, activity)))
+        resultString += '{}: {:.2f}% \n'.format(getNameForSystemId(index["solar_system_id"]), getIndexForActivity(index, activity))
+    resultString += '```'
+    return resultString;
 
 
 alliance_id = 99003214
 activity = "manufacturing"
 
-getActivityIndexForAlliance(alliance_id, activity, 5)
+result = getActivityIndexForAlliance(alliance_id, activity, 5)
+print(result)
+
+slack_url = 'https://brave-collective.slack.com/services/hooks/slackbot?token=' + os.environ['SLACK_TOKEN'] + '&channel=%23indybros-public'
+
+print(slack_url)
+requests.post(slack_url, data = result)
